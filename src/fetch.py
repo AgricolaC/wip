@@ -28,9 +28,7 @@ def get_sp100_tickers() -> List[str]:
 
 def polite_downloader() -> Downloader:
     """Instantiate the downloader with required contact info."""
-    return Downloader(
-        company="Ahmet Berk Calisir",
-        email="ahmetberkc2000@gmail.com"  # change to a real address
+    return Downloader("Ahmet Berk Calisir","ahmetberkc2000@gmail.com"  # change to a real address
     )
 
 def fetch_forms(
