@@ -26,10 +26,10 @@ def get_sp100_tickers() -> List[str]:
     tables = pd.read_html(SNP100_URL, match="Symbol")
     return tables[0]["Symbol"].tolist()
 
-def polite_downloader() -> Downloader:
-    """Instantiate the downloader with required contact info."""
-    return Downloader("Ahmet Berk Calisir","ahmetberkc2000@gmail.com"  # change to a real address
-    )
+def polite_downloader(outdir: Path) -> Downloader:
+    """Instantiate the downloader with required contact info and target folder."""
+    return Downloader("SecFilingsExplorer", "you@example.com", outdir)
+
 
 def fetch_forms(
     tickers: List[str],
@@ -42,16 +42,12 @@ def fetch_forms(
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
 
-    dl = polite_downloader()
+    dl = polite_downloader(out)    
     for tic in tickers:
         for ftype in form_types:
-            details = dl.get(ftype, tic, after=after, download_details=True)
-            for filing in details["filings"]:
-                src = Path(filing["local_path"])        # full path on disk
-                dest = out / src.name
-                dest.write_bytes(src.read_bytes())
+            dl.get(ftype, tic, after=after)   # returns an int we can ignore
         time.sleep(sleep)  # respect SEC bandwidth guidance
-    print(f"Download complete → {out} contains {len(list(out.glob('*')))} files")
+    print("Download complete –", len(list(out.glob('*'))), "files in", out)
 
 # ── CLI ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
