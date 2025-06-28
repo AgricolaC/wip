@@ -45,10 +45,11 @@ def fetch_forms(
     dl = polite_downloader()
     for tic in tickers:
         for ftype in form_types:
-            local_paths = dl.get(ftype, tic, after=after)
-            for src in local_paths:
-                dest = out / Path(src).name
-                dest.write_bytes(Path(src).read_bytes())
+            details = dl.get(ftype, tic, after=after, download_details=True)
+            for filing in details["filings"]:
+                src = Path(filing["local_path"])        # full path on disk
+                dest = out / src.name
+                dest.write_bytes(src.read_bytes())
         time.sleep(sleep)  # respect SEC bandwidth guidance
     print(f"Download complete → {out} contains {len(list(out.glob('*')))} files")
 
