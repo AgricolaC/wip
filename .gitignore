@@ -1,0 +1,18 @@
+# raw filings (HTML/ASCII/ZIP)
+data/raw/*
+
+# intermediate processed chunks / embeddings
+data/processed/*
+rag_db/*
+
+# Colab & Python
+.ipynb_checkpoints/
+__pycache__/
+.env
+*.egg-info/
+*.sqlite
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
