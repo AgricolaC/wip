@@ -1,37 +1,45 @@
-import re, json, pathlib, os
+import re, json, os, pathlib
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-RAW = pathlib.Path(os.getenv("FILINGS_RAW_DIR", "data/raw"))
-OUT = pathlib.Path("data/processed"); OUT.mkdir(parents=True, exist_ok=True)
-OUT_FILE = OUT / "toy_item1A_item7.jsonl"
+RAW_DIR   = pathlib.Path(os.getenv("FILINGS_RAW_DIR", "data/raw"))
+OUT_DIR   = pathlib.Path("data/processed")
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+OUT_FILE  = OUT_DIR / "item1a_item7.jsonl"
 
-def pull_sections(html_text: str) -> dict:
-    """Return a dict of {'item_1a': text, 'item_7': text} (plain)."""
-    soup = BeautifulSoup(html_text, "lxml")
-    text = soup.get_text("\n")                      # raw plain text
+def extract_sections(html_text: str) -> dict:
+    """
+    Return {'item_1a': str, 'item_7': str}.
+    Uses plain-text regex so it works on ASCII filings too.
+    """
+    soup  = BeautifulSoup(html_text, "lxml")
+    text  = soup.get_text("\n")        # one giant string
+    text  = re.sub(r'\xa0', ' ', text) # replace non-breaking spaces
 
-    # crude but effective regex to slice sections
     def grab(start_pat, end_pat):
-        pattern = rf"{start_pat}(.*?){end_pat}"
-        m = re.search(pattern, text, flags=re.I | re.S)
+        # DOTALL so newlines match '.', IGNORECASE for 'Item 1A', 'ITEM 1A.'
+        pat = rf"{start_pat}(.*?){end_pat}"
+        m   = re.search(pat, text, flags=re.I | re.S)
         return m.group(1).strip() if m else ""
 
     return {
         "item_1a": grab(r"item\s+1a[^a-z]", r"item\s+1b"),
-        "item_7":  grab(r"item\s+7[^0-9a-z]", r"item\s+7a"),
+        "item_7" : grab(r"item\s+7[^0-9a-z]", r"item\s+7a"),
     }
 
+# ──────────────────────────────────────────────────────────────
 with OUT_FILE.open("w", encoding="utf-8") as fout:
-    for fp in tqdm(list(RAW.glob("*.html"))):
-        doc_id = fp.stem                    # filename without .html
-        sections = pull_sections(fp.read_text(errors="ignore"))
+    for fp in tqdm(list(RAW_DIR.glob("*.html")), desc="Parsing filings"):
+        sections = extract_sections(fp.read_text(errors="ignore"))
+        if not any(sections.values()):
+            print("⚠️  No matches in", fp.name)
+            continue                       # skip empty hits
         for sec_name, content in sections.items():
             if content:
                 fout.write(json.dumps({
-                    "doc_id": doc_id,
-                    "section": sec_name,
-                    "text": content
+                    "doc_id" : fp.stem,
+                    "section": sec_name,   # 'item_1a' or 'item_7'
+                    "text"   : content
                 }) + "\n")
 
-print("✅ extracted →", OUT_FILE, "lines:", sum(1 for _ in open(OUT_FILE)))
+print("✅  Written", OUT_FILE, "→", sum(1 for _ in open(OUT_FILE)), "records")
