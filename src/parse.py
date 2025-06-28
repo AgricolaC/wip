@@ -29,7 +29,7 @@ def extract_sections(html_text: str) -> dict:
 
 # ──────────────────────────────────────────────────────────────
 with OUT_FILE.open("w", encoding="utf-8") as fout:
-    files = list(RAW_DIR.glob("*.html")) + list(RAW_DIR.glob("*.txt"))
+    files = list(RAW_DIR.rglob("*.html")) + list(RAW_DIR.rglob("*.txt"))
     for fp in tqdm(files, desc="Parsing filings"):        
         sections = extract_sections(fp.read_text(errors="ignore"))
         if not any(sections.values()):
